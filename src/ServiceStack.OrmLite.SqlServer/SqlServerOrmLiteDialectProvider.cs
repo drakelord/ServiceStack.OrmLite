@@ -569,4 +569,52 @@ namespace ServiceStack.OrmLite.SqlServer
 #endif
 
     }
+
+    public class SqlServer2012OrmLiteDialectProvider : SqlServerOrmLiteDialectProvider
+    {
+        public static SqlServer2012OrmLiteDialectProvider Instance = new SqlServer2012OrmLiteDialectProvider();
+        public override string ToSelectStatement(ModelDefinition modelDef,
+           string selectExpression,
+           string bodyExpression,
+           string orderByExpression = null,
+           int? offset = null,
+           int? rows = null)
+        {
+            var sb = new StringBuilder(selectExpression);
+            sb.Append(bodyExpression);
+
+            if (!offset.HasValue && !rows.HasValue)
+                return sb + orderByExpression;
+
+            if (offset.HasValue && offset.Value < 0)
+                throw new ArgumentException(string.Format("Skip value:'{0}' must be>=0", offset.Value));
+
+            if (rows.HasValue && rows.Value < 0)
+                throw new ArgumentException(string.Format("Rows value:'{0}' must be>=0", rows.Value));
+
+            var skip = offset.HasValue ? offset.Value : 0;
+            var take = rows.HasValue ? rows.Value : int.MaxValue;
+
+            var selectType = selectExpression.StartsWithIgnoreCase("SELECT DISTINCT") ? "SELECT DISTINCT" : "SELECT";
+
+            bool needFetch = skip > 0 || rows < int.MaxValue;
+            if (needFetch)
+            {
+                if (string.IsNullOrEmpty(orderByExpression))
+                {
+                    if (modelDef.PrimaryKey == null)
+                        throw new ApplicationException("Malformed model, no PrimaryKey defined");
+
+                    orderByExpression = string.Format("ORDER BY {0} OFFSET {1} ROWS FETCH NEXT {2} ROWS ONLY",
+                        OrmLiteConfig.DialectProvider.GetQuotedColumnName(modelDef, modelDef.PrimaryKey), skip, take);
+                }
+                else
+                {
+                    orderByExpression += string.Format("  OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY", skip, take);
+                }
+            }
+            var sql = sb + orderByExpression;
+            return sql;
+        }
+    }
 }
