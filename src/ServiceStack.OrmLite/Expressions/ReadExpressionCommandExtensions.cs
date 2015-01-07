@@ -118,13 +118,12 @@ namespace ServiceStack.OrmLite
 
         internal static long RowCount<T>(this IDbCommand dbCmd, SqlExpression<T> expression)
         {
-            var sql = "SELECT COUNT(*) FROM ({0}) AS COUNT".Fmt(expression.ToSelectStatement());
-            return dbCmd.Scalar<long>(sql);
+            return dbCmd.Scalar<long>(dbCmd.GetDialectProvider().ToRowCountStatement(expression.ToSelectStatement()));
         }
 
         internal static long RowCount(this IDbCommand dbCmd, string sql)
         {
-            return dbCmd.Scalar<long>("SELECT COUNT(*) FROM ({0}) AS COUNT".Fmt(sql));
+            return dbCmd.Scalar<long>(dbCmd.GetDialectProvider().ToRowCountStatement(sql));
         }
 
         internal static List<T> LoadSelect<T>(this IDbCommand dbCmd, Func<SqlExpression<T>, SqlExpression<T>> expression)
@@ -149,45 +148,6 @@ namespace ServiceStack.OrmLite
             var expr = dbCmd.GetDialectProvider().SqlExpression<T>().Where(predicate);
             return dbCmd.LoadListWithReferences<T, T>(expr);
         }
-
-        internal static T ExprConvertTo<T>(this IDataReader dataReader, IOrmLiteDialectProvider dialectProvider)
-        {
-            using (dataReader)
-            {
-                return dataReader.Read() ? dataReader.CreateInstance<T>(dialectProvider) : default(T);
-            }
-        }
-
-        internal static T CreateInstance<T>(this IDataReader dataReader, IOrmLiteDialectProvider dialectProvider)
-        {
-            var row = OrmLiteUtilExtensions.CreateInstance<T>();
-            var fieldDefs = ModelDefinition<T>.Definition.AllFieldDefinitionsArray;
-            foreach (var fieldDef in fieldDefs)
-            {
-                var index = dataReader.FindColumnIndex(dialectProvider, fieldDef);
-                dialectProvider.SetDbValue(fieldDef, dataReader, index, row);
-            }
-            return row;
-        }
-
-        internal static List<T> ExprConvertToList<T>(this IDataReader dataReader, IOrmLiteDialectProvider dialectProvider)
-        {
-            var fieldDefs = ModelDefinition<T>.Definition.AllFieldDefinitionsArray;
-
-            var to = new List<T>();
-            using (dataReader)
-            {
-               var indexCache = dataReader.GetIndexFieldsCache(ModelDefinition<T>.Definition);
-                while (dataReader.Read())
-                {
-                    var row = OrmLiteUtilExtensions.CreateInstance<T>();
-                    row.PopulateWithSqlReader(dialectProvider, dataReader, fieldDefs, indexCache);
-                    to.Add(row);
-                }
-            }
-            return to;
-        }
-
     }
 }
 

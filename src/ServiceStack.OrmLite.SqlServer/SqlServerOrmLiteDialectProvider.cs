@@ -109,7 +109,7 @@ namespace ServiceStack.OrmLite.SqlServer
                 var bytes = reader.GetValue(colIndex) as byte[];
                 if (bytes != null)
                 {
-                    var ulongValue = ConvertToULong(bytes);
+                    var ulongValue = OrmLiteUtils.ConvertToULong(bytes);
                     try
                     {
                         fieldDef.SetValueFn(instance, ulongValue);
@@ -281,7 +281,7 @@ namespace ServiceStack.OrmLite.SqlServer
                 {
                     var foreignKeyName = fieldDef.ForeignKey.GetForeignKeyName(
                         modelDef,
-                        GetModelDefinition(fieldDef.ForeignKey.ReferenceType),
+                        OrmLiteUtils.GetModelDefinition(fieldDef.ForeignKey.ReferenceType),
                         NamingStrategy,
                         fieldDef);
 
@@ -353,7 +353,8 @@ namespace ServiceStack.OrmLite.SqlServer
             var definition = base.GetColumnDefinition(fieldName, fieldType, isPrimaryKey, autoIncrement,
                 isNullable, isRowVersion, fieldLength, scale, defaultValue, customFieldDefinition);
 
-            if (fieldType == typeof(Decimal) && fieldLength != DefaultDecimalPrecision && scale != DefaultDecimalScale)
+            if (fieldType == typeof(Decimal) 
+                && (fieldLength != DefaultDecimalPrecision || scale != DefaultDecimalScale))
             {
                 string validDecimal = String.Format("DECIMAL({0},{1})",
                     fieldLength.GetValueOrDefault(DefaultDecimalPrecision),
@@ -408,7 +409,7 @@ namespace ServiceStack.OrmLite.SqlServer
                     throw new ApplicationException("Malformed model, no PrimaryKey defined");
 
                 orderByExpression = string.Format("ORDER BY {0}",
-                    OrmLiteConfig.DialectProvider.GetQuotedColumnName(modelDef, modelDef.PrimaryKey));
+                    this.GetQuotedColumnName(modelDef, modelDef.PrimaryKey));
             }
 
             var ret = string.Format(

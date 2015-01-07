@@ -86,6 +86,8 @@ namespace ServiceStack.OrmLite
 
         bool PrepareParameterizedDeleteStatement<T>(IDbCommand cmd, ICollection<string> deleteFields = null);
 
+        void PrepareStoredProcedureStatement<T>(IDbCommand cmd, T obj);
+
         void SetParameterValues<T>(IDbCommand dbCmd, object obj);
 
         Dictionary<string, FieldDefinition> GetFieldDefinitionMap(ModelDefinition modelDef);
@@ -161,5 +163,6 @@ namespace ServiceStack.OrmLite
         Task<long> InsertAndGetLastInsertIdAsync<T>(IDbCommand dbCmd, CancellationToken token);
     
         string GetLoadChildrenSubSelect<From>(ModelDefinition modelDef, SqlExpression<From> expr);
+        string ToRowCountStatement(string innerSql);
     }
 }

@@ -165,7 +165,7 @@ namespace ServiceStack.OrmLite.Sqlite
 
         public override void SetDbValue(FieldDefinition fieldDef, IDataReader reader, int colIndex, object instance)
         {
-            if (HandledDbNullValue(fieldDef, reader, colIndex, instance)) return;
+            if (OrmLiteUtils.HandledDbNullValue(fieldDef, reader, colIndex, instance)) return;
 
             var fieldType = Nullable.GetUnderlyingType(fieldDef.FieldType) ?? fieldDef.FieldType;
             if (fieldType == typeof(Guid))
@@ -218,6 +218,11 @@ namespace ServiceStack.OrmLite.Sqlite
             {
                 var dateTimeOffsetValue = (DateTimeOffset) value;
                 return base.GetQuotedValue(dateTimeOffsetValue.ToString("o"), typeof (string));
+            }
+
+            if (fieldType == typeof(byte[]))
+            {
+                return "x'" + BitConverter.ToString((byte[])value).Replace("-", "") + "'";
             }
 
             return base.GetQuotedValue(value, fieldType);

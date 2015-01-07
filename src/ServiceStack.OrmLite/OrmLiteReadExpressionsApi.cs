@@ -10,28 +10,39 @@ namespace ServiceStack.OrmLite
     {
         public static T Exec<T>(this IDbConnection dbConn, Func<IDbCommand, T> filter)
         {
-            return OrmLiteConfig.ExecFilter.Exec(dbConn, filter);
+            return dbConn.GetExecFilter().Exec(dbConn, filter);
         }
 
         public static void Exec(this IDbConnection dbConn, Action<IDbCommand> filter)
         {
-            OrmLiteConfig.ExecFilter.Exec(dbConn, filter);
+            dbConn.GetExecFilter().Exec(dbConn, filter);
         }
 
         public static Task<T> Exec<T>(this IDbConnection dbConn, Func<IDbCommand, Task<T>> filter)
         {
-            return OrmLiteConfig.ExecFilter.Exec(dbConn, filter);
+            return dbConn.GetExecFilter().Exec(dbConn, filter);
         }
 
         public static Task Exec(this IDbConnection dbConn, Func<IDbCommand, Task> filter)
         {
-            return OrmLiteConfig.ExecFilter.Exec(dbConn, filter);
+            return dbConn.GetExecFilter().Exec(dbConn, filter);
         }
 
         public static IEnumerable<T> ExecLazy<T>(this IDbConnection dbConn, Func<IDbCommand, IEnumerable<T>> filter)
         {
-            return OrmLiteConfig.ExecFilter.ExecLazy(dbConn, filter);
+            return dbConn.GetExecFilter().ExecLazy(dbConn, filter);
         }
+
+        public static IDbCommand Exec(this IDbConnection dbConn, Func<IDbCommand, IDbCommand> filter)
+        {
+            return dbConn.GetExecFilter().Exec(dbConn, filter);
+        }
+
+        public static Task<IDbCommand> Exec(this IDbConnection dbConn, Func<IDbCommand, Task<IDbCommand>> filter)
+        {
+            return dbConn.GetExecFilter().Exec(dbConn, filter);
+        }
+
 
         /// <summary>
         /// Create a new SqlExpression builder allowing typed LINQ-like queries.
@@ -39,7 +50,7 @@ namespace ServiceStack.OrmLite
         [Obsolete("Use From<T>")]
         public static SqlExpression<T> SqlExpression<T>(this IDbConnection dbConn)
         {
-            return OrmLiteConfig.ExecFilter.SqlExpression<T>(dbConn);
+            return dbConn.GetExecFilter().SqlExpression<T>(dbConn);
         }
 
         /// <summary>
@@ -48,12 +59,12 @@ namespace ServiceStack.OrmLite
         /// </summary>
         public static SqlExpression<T> From<T>(this IDbConnection dbConn)
         {
-            return OrmLiteConfig.ExecFilter.SqlExpression<T>(dbConn);
+            return dbConn.GetExecFilter().SqlExpression<T>(dbConn);
         }
 
         public static SqlExpression<T> From<T, JoinWith>(this IDbConnection dbConn, Expression<Func<T, JoinWith, bool>> joinExpr=null)
         {
-            var sql = OrmLiteConfig.ExecFilter.SqlExpression<T>(dbConn);
+            var sql = dbConn.GetExecFilter().SqlExpression<T>(dbConn);
             sql.Join<T,JoinWith>(joinExpr);
             return sql;
         }
@@ -63,7 +74,7 @@ namespace ServiceStack.OrmLite
         /// </summary>
         public static SqlExpression<T> From<T>(this IDbConnection dbConn, string fromExpression)
         {
-            var expr = OrmLiteConfig.ExecFilter.SqlExpression<T>(dbConn);
+            var expr = dbConn.GetExecFilter().SqlExpression<T>(dbConn);
             expr.From(fromExpression);
             return expr;
         }
@@ -82,6 +93,14 @@ namespace ServiceStack.OrmLite
         public static IDbTransaction OpenTransaction(this IDbConnection dbConn, IsolationLevel isolationLevel)
         {
             return new OrmLiteTransaction(dbConn, dbConn.BeginTransaction(isolationLevel));
+        }
+
+        /// <summary>
+        /// Create a managed OrmLite IDbCommand
+        /// </summary>
+        public static IDbCommand OpenCommand(this IDbConnection dbConn)
+        {
+            return dbConn.GetExecFilter().CreateCommand(dbConn);
         }
 
         /// <summary>

@@ -49,7 +49,7 @@ namespace ServiceStack.OrmLite
             var modelDef = modelType.GetModelDefinition();
 
             var dialectProvider = dbCmd.GetDialectProvider();
-            var tableName = dialectProvider.NamingStrategy.GetTableName(modelDef.ModelName);
+            var tableName = dialectProvider.NamingStrategy.GetTableName(modelDef);
             var tableExists = dialectProvider.DoesTableExist(dbCmd, tableName);
             if (overwrite && tableExists)
             {
@@ -183,7 +183,7 @@ namespace ServiceStack.OrmLite
             try
             {
                 var dialectProvider = dbCmd.GetDialectProvider();
-                var tableName = dialectProvider.NamingStrategy.GetTableName(modelDef.ModelName);
+                var tableName = dialectProvider.NamingStrategy.GetTableName(modelDef);
 
                 if (dialectProvider.DoesTableExist(dbCmd, tableName))
                 {
@@ -907,9 +907,8 @@ namespace ServiceStack.OrmLite
         internal static void ExecuteProcedure<T>(this IDbCommand dbCmd, T obj)
         {
             var dialectProvider = dbCmd.GetDialectProvider();
-            string sql = dialectProvider.ToExecuteProcedureStatement(obj);
-            dbCmd.CommandType = CommandType.StoredProcedure;
-            dbCmd.ExecuteSql(sql);
+            dialectProvider.PrepareStoredProcedureStatement(dbCmd, obj);
+            dbCmd.ExecuteNonQuery();
         }
 
         internal static ulong GetRowVersion(this IDbCommand dbCmd, ModelDefinition modelDef, object id)

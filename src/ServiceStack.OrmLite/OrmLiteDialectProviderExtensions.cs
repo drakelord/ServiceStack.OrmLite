@@ -1,3 +1,6 @@
+using System;
+using System.Data;
+
 namespace ServiceStack.OrmLite
 {
     public static class OrmLiteDialectProviderExtensions

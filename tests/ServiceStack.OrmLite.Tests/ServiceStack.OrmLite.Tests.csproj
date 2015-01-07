@@ -130,8 +130,12 @@
     <Compile Include="Expression\SelectExpressionTests.cs" />
     <Compile Include="Issues\ComplexJoinWithAlias.cs" />
     <Compile Include="Issues\MismatchSchemaTests.cs" />
+    <Compile Include="Issues\MultiColumnOrderByDescending.cs" />
+    <Compile Include="Issues\MultiFieldReferenceTests.cs" />
     <Compile Include="Issues\MultithreadingIssueTests.cs" />
+    <Compile Include="Issues\SaveDomainUserReferencesIssue.cs" />
     <Compile Include="Issues\SchemaTests.cs" />
+    <Compile Include="Issues\SelectDistinctTests.cs" />
     <Compile Include="Issues\SelectIntoTests.cs" />
     <Compile Include="LicenseUsageTests.cs" />
     <Compile Include="LoadReferencesJoinTests.cs" />
@@ -140,6 +144,7 @@
     <Compile Include="OrmLiteContextTests.cs" />
     <Compile Include="OrmLiteExecFilterTests.cs" />
     <Compile Include="OrmLiteFiltersTests.cs" />
+    <Compile Include="OrmLiteMultipleDialectProviderTests.cs" />
     <Compile Include="PerfTests.cs" />
     <Compile Include="RowVersionTests.cs" />
     <Compile Include="Shared\ModelWithNumerics.cs" />

@@ -67,11 +67,6 @@ namespace ServiceStack.OrmLite
             return dbCmd.ExecuteReader();
         }
 
-        public static bool IsScalar<T>()
-        {
-            return typeof(T).IsValueType || typeof(T) == typeof(string);
-        }
-
         internal static List<T> Select<T>(this IDbCommand dbCmd)
         {
             return SelectFmt<T>(dbCmd, (string)null);
@@ -342,7 +337,7 @@ namespace ServiceStack.OrmLite
 
         internal static T Single<T>(this IDbCommand dbCmd, string sql, object anonType)
         {
-            if (IsScalar<T>()) return Scalar<T>(dbCmd, sql, anonType);
+            if (OrmLiteUtils.IsScalar<T>()) return Scalar<T>(dbCmd, sql, anonType);
 
             dbCmd.SetParameters<T>(anonType, excludeDefaults: false);
 
@@ -363,9 +358,7 @@ namespace ServiceStack.OrmLite
         {
             dbCmd.SetFilters<T>(anonType);
 
-            return IsScalar<T>()
-                ? dbCmd.Column<T>()
-                : dbCmd.ConvertToList<T>();
+            return dbCmd.ConvertToList<T>();
         }
 
         internal static List<T> Select<T>(this IDbCommand dbCmd, string sql, object anonType = null)
@@ -373,9 +366,7 @@ namespace ServiceStack.OrmLite
             if (anonType != null) dbCmd.SetParameters<T>(anonType, excludeDefaults: false);
             dbCmd.CommandText = dbCmd.GetDialectProvider().ToSelectStatement(typeof(T), sql);
 
-            return IsScalar<T>()
-                ? dbCmd.Column<T>()
-                : dbCmd.ConvertToList<T>();
+            return dbCmd.ConvertToList<T>();
         }
 
         internal static List<T> Select<T>(this IDbCommand dbCmd, string sql, Dictionary<string, object> dict)
@@ -383,9 +374,7 @@ namespace ServiceStack.OrmLite
             if (dict != null) SetParameters(dbCmd, (IDictionary<string, object>)dict, (bool)false);
             dbCmd.CommandText = dbCmd.GetDialectProvider().ToSelectStatement(typeof(T), sql);
 
-            return IsScalar<T>()
-                ? dbCmd.Column<T>()
-                : dbCmd.ConvertToList<T>();
+            return dbCmd.ConvertToList<T>();
         }
 
         internal static List<T> SqlList<T>(this IDbCommand dbCmd, string sql, object anonType = null)
@@ -417,9 +406,7 @@ namespace ServiceStack.OrmLite
             if (anonType != null) dbCmd.SetParameters<T>(anonType, excludeDefaults: false);
             dbCmd.CommandText = sql;
 
-            return IsScalar<T>()
-                ? dbCmd.Column<T>()
-                : dbCmd.ConvertToList<T>();
+            return dbCmd.ConvertToList<T>();
         }
 
         internal static List<T> SqlColumn<T>(this IDbCommand dbCmd, string sql, Dictionary<string, object> dict)
@@ -427,9 +414,7 @@ namespace ServiceStack.OrmLite
             if (dict != null) SetParameters(dbCmd, dict, false);
             dbCmd.CommandText = sql;
 
-            return IsScalar<T>()
-                ? dbCmd.Column<T>()
-                : dbCmd.ConvertToList<T>();
+            return dbCmd.ConvertToList<T>();
         }
 
         internal static T SqlScalar<T>(this IDbCommand dbCmd, string sql, object anonType = null)
@@ -482,7 +467,7 @@ namespace ServiceStack.OrmLite
                 var indexCache = reader.GetIndexFieldsCache(ModelDefinition<T>.Definition);
                 while (reader.Read())
                 {
-                    var row = OrmLiteUtilExtensions.CreateInstance<T>();
+                    var row = OrmLiteUtils.CreateInstance<T>();
                     row.PopulateWithSqlReader(dialectProvider, reader, fieldDefs, indexCache);
                     yield return row;
                 }
@@ -537,7 +522,7 @@ namespace ServiceStack.OrmLite
                 var indexCache = reader.GetIndexFieldsCache(ModelDefinition<T>.Definition);
                 while (reader.Read())
                 {
-                    var row = OrmLiteUtilExtensions.CreateInstance<T>();
+                    var row = OrmLiteUtils.CreateInstance<T>();
                     row.PopulateWithSqlReader(dialectProvider, reader, fieldDefs, indexCache);
                     yield return row;
                 }
@@ -569,7 +554,7 @@ namespace ServiceStack.OrmLite
                 var indexCache = reader.GetIndexFieldsCache(ModelDefinition<T>.Definition);
                 while (reader.Read())
                 {
-                    var row = OrmLiteUtilExtensions.CreateInstance<T>();
+                    var row = OrmLiteUtils.CreateInstance<T>();
                     row.PopulateWithSqlReader(dialectProvider, reader, fieldDefs, indexCache);
                     yield return row;
                 }
@@ -863,19 +848,22 @@ namespace ServiceStack.OrmLite
 
         public static FieldDefinition GetRefFieldDefIfExists(this ModelDefinition modelDef, ModelDefinition refModelDef)
         {
-            var refField = refModelDef.FieldDefinitions.FirstOrDefault(x => x.ForeignKey != null && x.ForeignKey.ReferenceType == modelDef.ModelType)
-                           ?? refModelDef.FieldDefinitions.FirstOrDefault(x => x.FieldName == modelDef.ModelName + "Id")
-                           ?? refModelDef.FieldDefinitions.FirstOrDefault(x => x.Name == modelDef.Name + "Id");
+            var refField = 
+                   refModelDef.FieldDefinitions.FirstOrDefault(x => x.ForeignKey != null && x.ForeignKey.ReferenceType == modelDef.ModelType 
+                       && modelDef.IsRefField(x))
+                ?? refModelDef.FieldDefinitions.FirstOrDefault(x => x.ForeignKey != null && x.ForeignKey.ReferenceType == modelDef.ModelType)
+                ?? refModelDef.FieldDefinitions.FirstOrDefault(modelDef.IsRefField);
+
             return refField;
         }
 
         public static FieldDefinition GetSelfRefFieldDefIfExists(this ModelDefinition modelDef, ModelDefinition refModelDef, FieldDefinition fieldDef)
         {
             var refField = (fieldDef == null ? null
-                 : modelDef.FieldDefinitions.FirstOrDefault(x => x.ForeignKey != null && x.ForeignKey.ReferenceType == refModelDef.ModelType && x.FieldName == fieldDef.FieldName + "Id"))
+                 : modelDef.FieldDefinitions.FirstOrDefault(x => x.ForeignKey != null && x.ForeignKey.ReferenceType == refModelDef.ModelType
+                     && fieldDef.IsSelfRefField(x)))
                 ?? modelDef.FieldDefinitions.FirstOrDefault(x => x.ForeignKey != null && x.ForeignKey.ReferenceType == refModelDef.ModelType)
-                ?? modelDef.FieldDefinitions.FirstOrDefault(x => x.FieldName == refModelDef.ModelName + "Id")
-                ?? modelDef.FieldDefinitions.FirstOrDefault(x => x.Name == refModelDef.Name + "Id");
+                ?? modelDef.FieldDefinitions.FirstOrDefault(refModelDef.IsRefField);
 
             return refField;
         }
@@ -908,6 +896,10 @@ namespace ServiceStack.OrmLite
             }
             if (dbType != null)
                 p.DbType = dbType.Value;
+
+            if (p.DbType == DbType.String)
+                p.Size = dialectProvider.DefaultStringLength;
+
             return p;
         }
 
